@@ -1,0 +1,57 @@
+services:
+  # Database
+  db:
+    image: postgres:15-alpine
+    container_name: meraki-db
+    environment:
+      POSTGRES_USER: meraki
+      POSTGRES_PASSWORD: meraki_password
+      POSTGRES_DB: meraki
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meraki"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Backend
+  backend:
+    platform: ${PLATFORM_ARCH:-linux/amd64}
+    build:
+      context: ./meraki-dashboard-backend
+      args:
+        PLATFORM_ARCH: ${PLATFORM_ARCH:-linux/amd64}
+    container_name: meraki-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://meraki:meraki_password@db:5432/meraki
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./meraki-dashboard-backend/src:/src
+    # command: sh -c "sleep 5 && python seed_data.py && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+
+  # Frontend
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: meraki-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: http://localhost:8000
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ./frontend:/app
+  #     - /app/node_modules
+  #     - /app/.next
+
+volumes:
+  postgres_data:
