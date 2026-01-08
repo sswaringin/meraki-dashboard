@@ -30,6 +30,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://meraki:meraki_password@db:5432/meraki
+      ENVIRONMENT: dev
     depends_on:
       db:
         condition: service_healthy
